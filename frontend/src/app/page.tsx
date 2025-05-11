@@ -1,102 +1,300 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
+import { Search, Calendar, MapPin, Clock, ExternalLink, Loader2 } from "lucide-react";
+
+type SelectedEvent = {
+  id: number;
+  title: string;
+  date: string;
+  link: string;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [city, setCity] = useState("");
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<SelectedEvent | null>();
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const fetchEvents = async (cityName: string) => {
+    if (!cityName) {
+      toast.error("Please enter a city name");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/fetch-events/${cityName}`);
+      const data = await response.json();
+      setEvents(data.events || []);
+      toast.success(`Found ${data.events?.length || 0} events in ${cityName}`);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      toast.error("Failed to fetch events. Please try again.");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveUserAndRedirect = async () => {
+    if (!userName || !userEmail) {
+      toast.error("Please enter your name and email");
+      return;
+    }
+
+    if (!validateEmail(userEmail)) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/api/v1/save-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: userName,
+          email: userEmail,
+          eventTitle: selectedEvent?.title || "",
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Registration successful!");
+        window.open(selectedEvent?.link, "_blank");
+        setSelectedEvent(null);
+        setUserName("");
+        setUserEmail("");
+      } else {
+        toast.error("Failed to save user information");
+      }
+    } catch (error) {
+      console.error("Error saving user:", error);
+      toast.error("An error occurred. Please try again.");
+    }
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  // Example cities for suggestions
+  const popularCities = ["Lucknow", "Mumbai", "Bengaluru", "Delhi", "Chennai", "Kolkata"];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <Toaster position="top-center" reverseOrder={false} />
+
+      {/* Header */}
+      <header className="bg-white shadow-md">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <motion.h1
+            className="text-2xl font-bold text-indigo-600"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            City Events Hub
+          </motion.h1>
+          <motion.div
+            className="flex items-center bg-white rounded-full shadow-md p-2 w-full max-w-md"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Search className="w-5 h-5 text-gray-400 mx-2" />
+            <input
+              type="text"
+              placeholder="Enter city name..."
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="flex-grow outline-none text-gray-700 px-2"
+              onKeyDown={(e) => e.key === "Enter" && fetchEvents(city)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <motion.button
+              className="bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => fetchEvents(city)}
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Search"}
+            </motion.button>
+          </motion.div>
         </div>
+      </header>
+
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Popular cities chips */}
+        <motion.div
+          className="mb-8 flex flex-wrap gap-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <span className="text-sm font-medium text-gray-500">Popular cities:</span>
+          {popularCities.map((cityName) => (
+            <motion.button
+              key={cityName}
+              className="bg-white px-3 py-1 rounded-full text-sm text-indigo-600 border border-indigo-200 shadow-sm"
+              whileHover={{ scale: 1.05, backgroundColor: "#EEF2FF" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setCity(cityName);
+                fetchEvents(cityName);
+              }}
+            >
+              {cityName}
+            </motion.button>
+          ))}
+        </motion.div>
+
+        {/* Events grid */}
+        {events.length > 0 ? (
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <AnimatePresence>
+              {events.map((event: SelectedEvent, index) => (
+                <motion.div
+                  key={event.id}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 * index }}
+                  whileHover={{ y: -5 }}
+                >
+                  <div className="p-6">
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800 line-clamp-2">{event.title}</h3>
+                      <Calendar className="w-5 h-5 text-indigo-500 flex-shrink-0 ml-2" />
+                    </div>
+                    <div className="mt-3 flex items-center text-gray-500 text-sm">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span>{event.date}</span>
+                    </div>
+                    <div className="mt-2 flex items-center text-gray-500 text-sm">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>{city || "Location"}</span>
+                    </div>
+                    <motion.button
+                      className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+                      whileHover={{ scale: 1.02, backgroundColor: "#4F46E5" }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedEvent(event)}
+                    >
+                      Register for Event
+                      <ExternalLink className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        ) : loading ? (
+          <div className="flex justify-center items-center py-20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            >
+              <Loader2 className="w-12 h-12 text-indigo-500" />
+            </motion.div>
+          </div>
+        ) : (
+          <motion.div
+            className="text-center py-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <MapPin className="w-16 h-16 text-indigo-300 mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-gray-700">No events found</h3>
+            <p className="text-gray-500 mt-2">Search for a city to discover events</p>
+          </motion.div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Registration Modal */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedEvent(null)}
+          >
+            <motion.div
+              className="bg-white rounded-xl p-6 max-w-md w-full"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Register for Event</h3>
+              <p className="text-gray-600 mb-6">{selectedEvent.title}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="john@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <motion.button
+                  className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg text-sm font-medium"
+                  whileHover={{ backgroundColor: "#e5e7eb" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedEvent(null)}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium"
+                  whileHover={{ backgroundColor: "#4F46E5" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={saveUserAndRedirect}
+                >
+                  Register & Continue
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Footer */}
+      <footer className="mt-24 bg-white py-6 border-t border-gray-200">
+        <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
+          © 2025 City Events Hub. All rights reserved.
+        </div>
       </footer>
     </div>
   );

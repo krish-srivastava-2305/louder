@@ -14,7 +14,7 @@ const getEventsByCity = async (req, res) => {
         });
 
         const page = await browser.newPage();
-        await page.goto(`https://insider.in/all-events-in-${cityName}`, {
+        await page.goto(`https://insider.in/all-events-in-${cityName.toLowerCase()}`, {
             waitUntil: 'networkidle2'
         });
 
@@ -25,6 +25,7 @@ const getEventsByCity = async (req, res) => {
         const events = await page.evaluate(() => {
             const eventCards = document.querySelectorAll('.card-list-item');
             const data = [];
+            let i = 0;
 
             eventCards.forEach(card => {
                 const title = card.querySelector('[data-ref="event_card_title"]')?.innerText.trim() || "";
@@ -33,7 +34,7 @@ const getEventsByCity = async (req, res) => {
                 const fullLink = link ? (link.startsWith("http") ? link : `https://insider.in${link}`) : "";
 
                 if (title && date && fullLink) {
-                    data.push({ title, date, link: fullLink });
+                    data.push({ id: i++ ,title, date, link: fullLink });
                 }
             });
 
