@@ -16,8 +16,6 @@ RUN npm install
 COPY . .
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
-ENV 
-ENV 
 
 EXPOSE 8000
 
