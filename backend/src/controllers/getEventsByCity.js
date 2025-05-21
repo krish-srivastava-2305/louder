@@ -10,10 +10,10 @@ const getEventsByCity = async (req, res) => {
 
         const browser = await puppeteer.launch({
         headless: true,
-        executablePath: puppeteer.executablePath(), // uses bundled Chromium
+        executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
-        
+
         const page = await browser.newPage();
         await page.goto(`https://insider.in/all-events-in-${cityName.toLowerCase()}`, {
             waitUntil: 'networkidle2'
