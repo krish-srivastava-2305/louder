@@ -28,7 +28,7 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const response = await fetch(`https://louder-1.onrender.com/${cityName}`);
+      const response = await fetch(`https://louder-1.onrender.com/api/v1/fetch-events/${cityName}`);
       const data = await response.json();
       setEvents(data.events || []);
       toast.success(`Found ${data.events?.length || 0} events in ${cityName}`);
