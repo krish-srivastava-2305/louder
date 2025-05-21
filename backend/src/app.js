@@ -17,6 +17,9 @@ app.use(cors());
 import { eventsRouter } from './routes/events.route.js';
 import { userRouter } from './routes/user.route.js';
 
+app.get("/", (req, res) => {
+    res.status(200).send("Hello from the server");
+});
 app.use("/api/v1/fetch-events", eventsRouter)
 app.use("/api/v1/save-user", userRouter)
 
